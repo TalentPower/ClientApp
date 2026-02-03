@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "535300170980",
+    "project_id": "apprutas-d7efc",
+    "storage_bucket": "apprutas-d7efc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:535300170980:android:0c62c787468d6d4b8eb8f1",
+        "android_client_info": {
+          "package_name": "com.drivertrackerapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKdoSkj7rx3wsDMpXwW7xV5GZfNHY25pg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
