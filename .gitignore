@@ -1,0 +1,27 @@
+# Use patterns from the app folder
+appClienteTracker/node_modules/
+appClienteTracker/.expo/
+appClienteTracker/dist/
+appClienteTracker/web-build/
+appClienteTracker/ios/
+appClienteTracker/android/
+appClienteTracker/.kotlin/
+appClienteTracker/*.jks
+appClienteTracker/*.p8
+appClienteTracker/*.p12
+appClienteTracker/*.key
+appClienteTracker/*.mobileprovision
+
+# Root items
+node_modules/
+.DS_Store
+*.pem
+.env*.local
+*.tsbuildinfo
+
+# Antigravity AI Skills & Tooling (Awesome Skills)
+.agent/
+.agents/
+_agents/
+_agent/
+.gemini/
