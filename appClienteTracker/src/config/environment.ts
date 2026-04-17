@@ -8,6 +8,10 @@ export const config = {
             auth: {
                 // ClientAuthController → POST /api/client/auth/login
                 login: '/api/client/auth/login',
+                // ClientAuthController → POST /api/client/auth/register/auto
+                registerAuto: '/api/client/auth/register/auto',
+                // ClientAuthController → POST /api/client/auth/register/explicit
+                registerExplicit: '/api/client/auth/register/explicit',
             },
             trips: {
                 // ClientTripController → GET /api/client/trips/active

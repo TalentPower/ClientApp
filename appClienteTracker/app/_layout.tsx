@@ -41,7 +41,7 @@ function RootLayoutNav() {
     useEffect(() => {
         if (!isNavigationReady || isLoading) return;
 
-        const isAuthGroup = segments[0] === 'login';
+        const isAuthGroup = segments[0] === 'login' || segments[0] === 'register';
 
         if (!user && !isAuthGroup) {
             router.replace('/login');
@@ -63,6 +63,7 @@ function RootLayoutNav() {
             <ThemeProvider value={AppTheme}>
                 <Stack>
                     <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
+                    <Stack.Screen name="register" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
                     <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
                     <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
                 </Stack>

@@ -1,22 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Colors, Radii, Spacing } from '@/src/constants/Colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const { login, isLoading, error } = useAuth();
     const router = useRouter();
 
+    const normalizedPhone = useMemo(() => phone.replace(/\D/g, ''), [phone]);
+    const normalizedPin = useMemo(() => password.replace(/\D/g, ''), [password]);
+    const isValidForm = normalizedPhone.length >= 8 && normalizedPin.length === 3;
+
     const handleLogin = async () => {
-        if (!email || !password) return;
+        if (!isValidForm) return;
         try {
-            await login({ email, password });
+            await login({ phone: normalizedPhone, password: normalizedPin });
             router.replace('/(tabs)');
-        } catch (e) {
+        } catch {
             // Error handled by hook states
         }
     };
@@ -38,40 +42,48 @@ export default function LoginScreen() {
                 {error && <Text style={styles.errorText}>{error}</Text>}
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Correo Institucional</Text>
+                    <Text style={styles.label}>Telefono</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="ejemplo@empresa.com"
+                        placeholder="5512345678"
                         placeholderTextColor={Colors.textSecondary}
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
+                        value={phone}
+                        onChangeText={setPhone}
+                        keyboardType="phone-pad"
                     />
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Contraseña</Text>
+                    <Text style={styles.label}>Ultimos 3 digitos</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="••••••••"
+                        placeholder="123"
                         placeholderTextColor={Colors.textSecondary}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
+                        keyboardType="number-pad"
+                        maxLength={3}
                     />
                 </View>
 
                 <TouchableOpacity
-                    style={[styles.button, (!email || !password || isLoading) && styles.buttonDisabled]}
+                    style={[styles.button, (!isValidForm || isLoading) && styles.buttonDisabled]}
                     onPress={handleLogin}
-                    disabled={!email || !password || isLoading}
+                    disabled={!isValidForm || isLoading}
                 >
                     {isLoading ? (
                         <ActivityIndicator color={Colors.white} />
                     ) : (
-                        <Text style={styles.buttonText}>Iniciar Sesión</Text>
+                        <Text style={styles.buttonText}>Iniciar Sesion</Text>
                     )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.registerLink} onPress={() => router.push('/register')}>
+                    <Text style={styles.registerLinkText}>
+                        ¿Primera vez?{' '}
+                        <Text style={styles.registerLinkAccent}>Crear cuenta</Text>
+                    </Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -151,4 +163,17 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
     },
+    registerLink: {
+        alignItems: 'center',
+        marginTop: Spacing.sm,
+    },
+    registerLinkText: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+    },
+    registerLinkAccent: {
+        color: Colors.accent,
+        fontWeight: '600',
+    },
 });
+

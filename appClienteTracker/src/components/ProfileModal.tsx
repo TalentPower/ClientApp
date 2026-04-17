@@ -63,7 +63,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                     <View style={styles.avatarContainer}>
                         <Ionicons name="person-circle" size={80} color="#3b82f6" />
                         <Text style={styles.name}>{user?.name || 'Pasajero'}</Text>
-                        <Text style={styles.email}>{user?.email || 'pasajero@example.com'}</Text>
+                        <Text style={styles.email}>{user?.phone || user?.email || 'Sin contacto'}</Text>
                     </View>
 
                     <View style={styles.infoSection}>
