@@ -24,6 +24,7 @@ export default function TabLayout() {
                 tabBarActiveTintColor: Colors.accent,
                 tabBarInactiveTintColor: Colors.textSecondary,
                 tabBarLabelStyle: styles.tabBarLabel,
+                tabBarItemStyle: styles.tabBarItem,
                 tabBarStyle: [
                     styles.tabBarBase,
                     isIos ? styles.tabBarIos : styles.tabBarAndroid,
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
         left: 16,
         right: 16,
         borderRadius: 24,
-        height: 64,
+        height: 68,
         borderTopWidth: 0,
     },
     tabBarIos: {
@@ -79,6 +80,14 @@ const styles = StyleSheet.create({
         elevation: 12,
         borderWidth: 1,
         borderColor: Colors.border,
+    },
+    tabBarItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 8,
+        paddingBottom: 6,
+        gap: 3,
     },
     tabBarLabel: {
         fontSize: 11,

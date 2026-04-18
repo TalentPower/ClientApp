@@ -14,10 +14,24 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Default Expo template icons
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  // Tab bar icons
+  'map.fill': 'map',
+  'bell.fill': 'notifications',
+  'qrcode': 'qr-code-2',
+  // Login / Register screen icons
+  'bus.fill': 'directions-bus',
+  'lock.fill': 'lock',
+  'chevron.left': 'chevron-left',
+  'person.badge.plus': 'person-add',
+  // Bottom sheet / trip info icons
+  'clock.fill': 'access-time',
+  'person.fill': 'person',
+  'phone.fill': 'phone',
 } as IconMapping;
 
 /**
