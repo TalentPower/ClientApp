@@ -6,15 +6,21 @@ import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { NotificationRepository } from '../infrastructure/NotificationRepository';
 
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowList: true,
-        shouldShowBanner: true,
-    } as any),
-});
+// expo-notifications remote push is not available in Expo Go (SDK 53+).
+// Only set up the handler when running in a real build.
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+if (!isExpoGo) {
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+            shouldShowList: true,
+            shouldShowBanner: true,
+        } as any),
+    });
+}
 
 export function usePushNotifications() {
     const [expoPushToken, setExpoPushToken] = useState('');
@@ -35,24 +41,22 @@ export function usePushNotifications() {
     }, []);
 
     useEffect(() => {
+        if (isExpoGo) return; // Push notifications not supported in Expo Go SDK 53+
+
         registerForPushNotificationsAsync()
             .then((token) => {
                 const t = token ?? '';
                 setExpoPushToken(t);
-                // Register with the SIPE backend
                 if (t) registerTokenWithBackend(t);
             })
-            .catch((error: any) => setExpoPushToken(`${error}`));
+            .catch((error: any) => console.warn('Push token error:', error));
 
-        // Listener: notification received while app is in foreground
         notificationListener.current = Notifications.addNotificationReceivedListener((notif) => {
             setNotification(notif);
         });
 
-        // Listener: user tapped a notification → deep link
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
             const data = response.notification.request.content.data;
-            // Deep-link to the appropriate screen
             if (data?.tripId) {
                 router.push('/(tabs)');
             } else if (data?.deepLink && typeof data.deepLink === 'string') {

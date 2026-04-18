@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -8,6 +9,12 @@ import { Colors } from '@/src/constants/Colors';
 import { BlurView } from 'expo-blur';
 
 export default function TabLayout() {
+    const insets = useSafeAreaInsets();
+    const bottomOffset = Platform.OS === 'ios'
+        ? Math.max(insets.bottom, 16) + 8
+        : insets.bottom + 12;
+
+    const isIos = Platform.OS === 'ios';
 
     return (
         <Tabs
@@ -16,30 +23,36 @@ export default function TabLayout() {
                 tabBarButton: HapticTab,
                 tabBarActiveTintColor: Colors.accent,
                 tabBarInactiveTintColor: Colors.textSecondary,
-                tabBarStyle: styles.tabBar,
-                tabBarBackground: () => (
-                    <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-                ),
+                tabBarLabelStyle: styles.tabBarLabel,
+                tabBarStyle: [
+                    styles.tabBarBase,
+                    isIos ? styles.tabBarIos : styles.tabBarAndroid,
+                    { bottom: bottomOffset },
+                ],
+                // BlurView solo en iOS — en Android el backgroundColor del style es suficiente
+                tabBarBackground: isIos
+                    ? () => <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+                    : undefined,
             }}>
             <Tabs.Screen
                 name="index"
                 options={{
                     title: 'Mi Ruta',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
+                    tabBarIcon: ({ color }) => <IconSymbol size={26} name="map.fill" color={color} />,
                 }}
             />
             <Tabs.Screen
                 name="hub"
                 options={{
                     title: 'Mi Hub',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} />,
+                    tabBarIcon: ({ color }) => <IconSymbol size={26} name="bell.fill" color={color} />,
                 }}
             />
             <Tabs.Screen
                 name="explore"
                 options={{
                     title: 'Mi QR',
-                    tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode" color={color} />,
+                    tabBarIcon: ({ color }) => <IconSymbol size={26} name="qrcode" color={color} />,
                 }}
             />
         </Tabs>
@@ -47,16 +60,28 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-    tabBar: {
+    tabBarBase: {
         position: 'absolute',
-        bottom: Platform.OS === 'ios' ? 24 : 16,
         left: 16,
         right: 16,
-        elevation: 0,
-        backgroundColor: 'transparent',
         borderRadius: 24,
-        height: 60,
+        height: 64,
         borderTopWidth: 0,
+    },
+    tabBarIos: {
+        backgroundColor: 'transparent',
         overflow: 'hidden',
+        elevation: 0,
+    },
+    tabBarAndroid: {
+        backgroundColor: Colors.secondary,
+        overflow: 'visible',
+        elevation: 12,
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    tabBarLabel: {
+        fontSize: 11,
+        fontWeight: '600',
     },
 });

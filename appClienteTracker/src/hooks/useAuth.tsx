@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { AuthRepository } from '../infrastructure/AuthRepository';
 import { AuthResponse, LoginCredentials } from '../domain/Auth';
+import { setUnauthorizedCallback } from '../infrastructure/apiClient';
 
 interface AuthContextType {
     user: AuthResponse | null;
@@ -34,6 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         initAuth();
     }, [initAuth]);
 
+    // Register 401 callback so apiClient can clear auth state without circular imports.
+    // When token is invalid, apiClient calls this → user becomes null → _layout redirects to /login.
+    useEffect(() => {
+        setUnauthorizedCallback(() => {
+            setUser(null);
+            setError(null);
+        });
+    }, []);
+
     const login = async (credentials: LoginCredentials) => {
         setIsLoading(true);
         setError(null);
@@ -42,7 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(data);
             return data;
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Error occurred during login. Check credentials.');
+            const data = err?.response?.data;
+            setError(
+                (Array.isArray(data?.details) && data.details[0]) ||
+                data?.message ||
+                'Credenciales incorrectas.'
+            );
             throw err;
         } finally {
             setIsLoading(false);

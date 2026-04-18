@@ -44,9 +44,13 @@ export default function RegisterScreen() {
                 router.replace('/login');
             }
         } catch (err: any) {
+            const data = err?.response?.data;
+            const status = err?.response?.status;
             const msg =
-                err?.response?.data?.message ||
-                'Error al registrar. Verifica tu número.';
+                (Array.isArray(data?.details) && data.details[0]) ||
+                data?.message ||
+                data?.error ||
+                (status ? `Error ${status}` : 'Error al registrar. Verifica tu número.');
             setError(msg);
         } finally {
             setIsLoading(false);

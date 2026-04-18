@@ -1,6 +1,5 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { router } from 'expo-router';
 
 // Set this to your external server URL
 export const BASE_URL = 'https://api-sipe.com';
@@ -11,6 +10,15 @@ export const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// Callback registered by AuthProvider to clear React auth state on 401.
+// Navigation is handled by _layout.tsx reacting to user becoming null.
+let _onUnauthorized: (() => void) | null = null;
+let _handling401 = false;
+
+export function setUnauthorizedCallback(cb: () => void) {
+    _onUnauthorized = cb;
+}
 
 // Interceptor to inject JWT on every request securely
 apiClient.interceptors.request.use(
@@ -24,24 +32,19 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle unified error messages
+// Response interceptor: on 401 clear storage and notify AuthProvider once.
 apiClient.interceptors.response.use(
-    (response) => {
-        return response;
-    },
+    (response) => response,
     async (error) => {
-        // We can handle global 401s here to force a logout redirect later
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !_handling401) {
+            _handling401 = true;
             console.warn('Unauthorized request - Token may be invalid or expired');
             await SecureStore.deleteItemAsync('client_jwt');
             await SecureStore.deleteItemAsync('client_info');
-            try {
-                if (router && router.replace) {
-                    router.replace('/login');
-                }
-            } catch (e) {
-                console.warn('Router replace failed out of context');
-            }
+            // Notify AuthProvider → sets user = null → _layout redirects to /login
+            _onUnauthorized?.();
+            // Reset flag after a tick so concurrent requests don't re-trigger
+            setTimeout(() => { _handling401 = false; }, 2000);
         }
         return Promise.reject(error);
     }

@@ -54,7 +54,7 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Ultimos 3 digitos</Text>
+                    <Text style={styles.label}>Contraseña</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="123"
