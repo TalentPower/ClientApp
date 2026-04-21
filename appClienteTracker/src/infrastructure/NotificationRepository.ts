@@ -34,7 +34,10 @@ export class NotificationRepository {
             : '/api/notifications?activeOnly=true&module=APP_PASAJERO';
             
         // We also fetch without module to get generic alerts
-        const response = await apiClient.get<BackendApiResponse<any[]>>(url);
-        return response.data.data;
+        const response = await apiClient.get<any>(url);
+        const dataArray = Array.isArray(response.data) 
+            ? response.data 
+            : (Array.isArray(response.data?.data) ? response.data.data : []);
+        return dataArray;
     }
 }

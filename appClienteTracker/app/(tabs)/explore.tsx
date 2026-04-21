@@ -42,11 +42,11 @@ export default function QrAndAnnouncementsScreen() {
                     <Text style={{ color: Colors.textSecondary, marginTop: Spacing.sm }}>Cargando anuncios...</Text>
                 )}
 
-                {!isLoading && announcements.length === 0 && (
+                {!isLoading && (!announcements || announcements.length === 0) && (
                     <Text style={{ color: Colors.textSecondary, marginTop: Spacing.sm }}>No hay anuncios recientes.</Text>
                 )}
 
-                {announcements.map((item) => (
+                {announcements && announcements.map((item) => (
                     <View key={item.id} style={styles.card}>
                         <View style={styles.cardHeader}>
                             <IconSymbol

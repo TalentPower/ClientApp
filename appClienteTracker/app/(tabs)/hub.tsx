@@ -36,7 +36,7 @@ export default function HubScreen() {
 
     // Agrupamos notificaciones por fecha: hoy, ayer, más antiguas
     const groupNotifications = () => {
-        if (!notifications.length) return [];
+        if (!notifications || !notifications.length) return [];
         
         // Simple mock grouping for now, ideally by exact date ignoring time
         const today: any[] = [];

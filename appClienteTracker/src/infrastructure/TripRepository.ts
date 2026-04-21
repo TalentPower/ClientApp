@@ -32,11 +32,15 @@ export class TripRepository {
      * The backend resolves the user by JWT → email → RouteAssignment.
      */
     static async getActiveTrips(): Promise<Trip[]> {
-        const response = await apiClient.get<BackendApiResponse<any[]>>(
+        const response = await apiClient.get<any>(
             '/api/client/trips/active'
         );
 
-        return response.data.data.map((trip: any) => ({
+        const dataArray = Array.isArray(response.data) 
+            ? response.data 
+            : (Array.isArray(response.data?.data) ? response.data.data : []);
+
+        return dataArray.map((trip: any) => ({
             tripId: trip.tripId,
             routeId: trip.routeId,
             routeName: trip.routeName,
@@ -150,9 +154,11 @@ export class TripRepository {
     // ─────────────────────────────────────────
 
     static async getNotificationHistory(): Promise<NotificationItem[]> {
-        const response = await apiClient.get<BackendApiResponse<NotificationItem[]>>('/api/notifications/history');
-        // Ensure type cast or transformation if needed, backend sends correctly shaped objects.
-        return response.data.data;
+        const response = await apiClient.get<any>('/api/notifications/history');
+        const dataArray = Array.isArray(response.data) 
+            ? response.data 
+            : (Array.isArray(response.data?.data) ? response.data.data : []);
+        return dataArray as NotificationItem[];
     }
 
     static async getTomorrowForecast(): Promise<AttendanceForecast | null> {
