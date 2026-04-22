@@ -38,6 +38,8 @@ export function MapSurface({
     showGeofences = false,
 }: MapSurfaceProps) {
     const pulseAnim = useRef(new Animated.Value(0.3)).current;
+    const mapRef = useRef<MapView | null>(null);
+    const lastFollowedRef = useRef<string | null>(null);
 
     // Pulse animation for bus marker
     useEffect(() => {
@@ -52,8 +54,28 @@ export function MapSurface({
         return () => anim.stop();
     }, [busLocation, pulseAnim]);
 
+    // Recenter map on bus when it moves (follow mode)
+    useEffect(() => {
+        if (!busLocation || !mapRef.current) return;
+        const key = `${busLocation.latitude.toFixed(5)},${busLocation.longitude.toFixed(5)}`;
+        if (key === lastFollowedRef.current) return;
+        lastFollowedRef.current = key;
+        mapRef.current.animateToRegion({
+            latitude: busLocation.latitude,
+            longitude: busLocation.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.015,
+        }, 600);
+    }, [busLocation]);
+
+    // Polyline re-render key (refresh if stops change)
+    const polylineKey = polylineCoordinates
+        .map(c => `${c.latitude.toFixed(4)}-${c.longitude.toFixed(4)}`)
+        .join('|');
+
     return (
         <MapView
+            ref={mapRef}
             provider={PROVIDER_GOOGLE}
             style={styles.map}
             customMapStyle={CustomMapStyle}
@@ -71,6 +93,7 @@ export function MapSurface({
             {/* ── Route polyline ── */}
             {polylineCoordinates.length > 1 && (
                 <Polyline
+                    key={polylineKey}
                     coordinates={polylineCoordinates}
                     strokeColor={Colors.accent}
                     strokeWidth={4}

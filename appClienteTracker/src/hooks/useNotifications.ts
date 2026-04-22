@@ -6,11 +6,13 @@ import { useAuth } from './useAuth';
 export function useNotifications() {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const { user } = useAuth();
 
     const fetchAnnouncements = useCallback(async () => {
         try {
             setIsLoading(true);
+            setError(null);
             const data = await NotificationRepository.getNotifications(user?.companyId ?? undefined);
             
             const mapped: Announcement[] = data.map((item: any) => {
@@ -37,8 +39,9 @@ export function useNotifications() {
             });
             
             setAnnouncements(mapped);
-        } catch (e) {
-            console.warn('Failed to load announcements', e);
+        } catch (e: any) {
+            if (__DEV__) console.warn('Failed to load announcements', e);
+            setError(e?.message || 'No se pudieron cargar los avisos.');
         } finally {
             setIsLoading(false);
         }
@@ -48,5 +51,5 @@ export function useNotifications() {
         fetchAnnouncements();
     }, [fetchAnnouncements]);
 
-    return { announcements, isLoading, fetchAnnouncements };
+    return { announcements, isLoading, error, fetchAnnouncements, refresh: fetchAnnouncements };
 }

@@ -77,7 +77,12 @@ export default function RegisterScreen() {
                         <Text style={styles.modalSubtitle}>
                             Usa estos 3 dígitos como contraseña para iniciar sesión
                         </Text>
-                        <TouchableOpacity style={styles.button} onPress={handlePinConfirm}>
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={handlePinConfirm}
+                            accessibilityRole="button"
+                            accessibilityLabel="Ir al login"
+                        >
                             <Text style={styles.buttonText}>Ir al login</Text>
                         </TouchableOpacity>
                     </View>
@@ -86,7 +91,12 @@ export default function RegisterScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Volver"
+                >
                     <IconSymbol name="chevron.left" size={20} color={Colors.textSecondary} />
                     <Text style={styles.backText}>Volver</Text>
                 </TouchableOpacity>
@@ -107,6 +117,9 @@ export default function RegisterScreen() {
                 <TouchableOpacity
                     style={[styles.modeBtn, mode === 'auto' && styles.modeBtnActive]}
                     onPress={() => { setMode('auto'); setError(null); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Modo PIN automático"
+                    accessibilityState={{ selected: mode === 'auto' }}
                 >
                     <Text style={[styles.modeBtnText, mode === 'auto' && styles.modeBtnTextActive]}>
                         PIN automático
@@ -115,6 +128,9 @@ export default function RegisterScreen() {
                 <TouchableOpacity
                     style={[styles.modeBtn, mode === 'explicit' && styles.modeBtnActive]}
                     onPress={() => { setMode('explicit'); setError(null); }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Modo elegir contraseña"
+                    accessibilityState={{ selected: mode === 'explicit' }}
                 >
                     <Text style={[styles.modeBtnText, mode === 'explicit' && styles.modeBtnTextActive]}>
                         Elegir contraseña
@@ -135,6 +151,9 @@ export default function RegisterScreen() {
                         value={phone}
                         onChangeText={setPhone}
                         keyboardType="phone-pad"
+                        autoComplete="tel"
+                        textContentType="telephoneNumber"
+                        accessibilityLabel="Teléfono"
                     />
                 </View>
 
@@ -148,6 +167,9 @@ export default function RegisterScreen() {
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
+                            autoComplete="password-new"
+                            textContentType="newPassword"
+                            accessibilityLabel="Contraseña"
                         />
                     </View>
                 )}
@@ -162,6 +184,9 @@ export default function RegisterScreen() {
                     style={[styles.button, (!isValid || isLoading) && styles.buttonDisabled]}
                     onPress={handleRegister}
                     disabled={!isValid || isLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel="Registrarme"
+                    accessibilityState={{ disabled: !isValid || isLoading, busy: isLoading }}
                 >
                     {isLoading ? (
                         <ActivityIndicator color={Colors.white} />

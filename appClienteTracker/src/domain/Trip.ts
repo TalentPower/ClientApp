@@ -132,3 +132,21 @@ export interface AttendanceForecast {
     routeName: string;
     status: AttendanceForecastStatus;
 }
+
+// ── Assigned route (client's permanent route for today) ──
+// Maps to GET /api/client/trips/assigned-route
+export interface AssignedRoute {
+    assignmentId: number;
+    routeId: number;
+    routeName: string;
+    turn: string | null;
+    direction: 'INBOUND' | 'OUTBOUND' | string | null;
+    capacity: number | null;
+    date: string;
+    tripId: number | null;
+    tripStatus: TripStatus | null;
+    scheduledEntryTime: string | null;   // HH:mm:ss
+    scheduledExpectedTime: string | null;
+    vehicle: { id: number; plate: string } | null;
+    driverInfo: { name: string; phone: string } | null;
+}

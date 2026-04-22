@@ -4,7 +4,10 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { NotificationRepository } from '../infrastructure/NotificationRepository';
+
+const FCM_TOKEN_CACHE_KEY = 'fcm_token_registered';
 
 // expo-notifications remote push is not available in Expo Go (SDK 53+).
 // Only set up the handler when running in a real build.
@@ -29,14 +32,20 @@ export function usePushNotifications() {
     const responseListener = useRef<Notifications.Subscription | null>(null);
     const router = useRouter();
 
-    // Register token with backend when obtained
+    // Register token with backend when obtained (only if changed)
     const registerTokenWithBackend = useCallback(async (token: string) => {
         if (!token || token.startsWith('Error')) return;
         try {
+            const cached = await SecureStore.getItemAsync(FCM_TOKEN_CACHE_KEY);
+            if (cached === token) {
+                if (__DEV__) console.log('FCM token unchanged, skip register');
+                return;
+            }
             await NotificationRepository.registerFcmToken(token);
-            console.log('FCM token registrado en backend');
+            await SecureStore.setItemAsync(FCM_TOKEN_CACHE_KEY, token);
+            if (__DEV__) console.log('FCM token registrado en backend');
         } catch (err) {
-            console.warn('No se pudo registrar el FCM token:', err);
+            if (__DEV__) console.warn('No se pudo registrar el FCM token:', err);
         }
     }, []);
 
@@ -49,7 +58,7 @@ export function usePushNotifications() {
                 setExpoPushToken(t);
                 if (t) registerTokenWithBackend(t);
             })
-            .catch((error: any) => console.warn('Push token error:', error));
+            .catch((error: any) => { if (__DEV__) console.warn('Push token error:', error); });
 
         notificationListener.current = Notifications.addNotificationReceivedListener((notif) => {
             setNotification(notif);
@@ -93,7 +102,7 @@ async function registerForPushNotificationsAsync() {
             finalStatus = status;
         }
         if (finalStatus !== 'granted') {
-            console.log('Failed to get push token for push notification!');
+            if (__DEV__) console.log('Failed to get push token for push notification!');
             return;
         }
 
@@ -109,7 +118,7 @@ async function registerForPushNotificationsAsync() {
             token = `${e}`;
         }
     } else {
-        console.log('Must use physical device for Push Notifications');
+        if (__DEV__) console.log('Must use physical device for Push Notifications');
     }
 
     return token;

@@ -70,6 +70,7 @@
       [
         "expo-location",
         {
+          "locationWhenInUsePermission": "Necesitamos tu ubicación para guiarte durante el viaje.",
           "locationAlwaysAndWhenInUsePermission": "Permite rastrear tu ruta hacia el destino incluso si cierras la app.",
           "locationAlwaysPermission": "Necesitamos ubicación en segundo plano para las alertas de llegada.",
           "isAndroidBackgroundLocationEnabled": true,

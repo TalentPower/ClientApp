@@ -10,15 +10,18 @@ export function useQrCode() {
     const [qrPayload, setQrPayload] = useState<string>('');
     const [isReady, setIsReady] = useState(false);
     const [secondsLeft, setSecondsLeft] = useState(60);
+    const [error, setError] = useState<string | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const generatePayload = useCallback(async () => {
         try {
+            setError(null);
             const authDataStr = await SecureStore.getItemAsync('client_info');
             if (!authDataStr) {
                 setQrPayload('');
                 setIsReady(false);
+                setError('Sesión no encontrada. Inicia sesión de nuevo.');
                 return;
             }
 
@@ -40,9 +43,10 @@ export function useQrCode() {
             setQrPayload(encoded);
             setIsReady(true);
             setSecondsLeft(60);
-        } catch (err) {
-            console.error('Error generating QR payload:', err);
+        } catch (err: any) {
+            if (__DEV__) console.error('Error generating QR payload:', err);
             setIsReady(false);
+            setError(err?.message || 'No se pudo generar el código QR. Toca para reintentar.');
         }
     }, []);
 
@@ -70,6 +74,7 @@ export function useQrCode() {
         qrPayload,
         isReady,
         secondsLeft,
+        error,
         regenerate: generatePayload,
     };
 }

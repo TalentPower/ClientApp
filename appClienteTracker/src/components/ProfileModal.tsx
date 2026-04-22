@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import { useAssignedRoute } from '../hooks/useTrips';
 
 interface ProfileModalProps {
     visible: boolean;
@@ -12,7 +13,20 @@ const { height } = Dimensions.get('window');
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) => {
     const { user, logout } = useAuth();
+    const { primary: assignedRoute, isLoading: isLoadingRoute, error: routeError, refresh: refreshRoute } = useAssignedRoute();
     const slideAnim = React.useRef(new Animated.Value(height)).current;
+
+    React.useEffect(() => {
+        if (visible) refreshRoute();
+    }, [visible, refreshRoute]);
+
+    const formatTime = (t: string | null) => {
+        if (!t) return null;
+        // Backend returns HH:mm:ss
+        const parts = t.split(':');
+        if (parts.length >= 2) return `${parts[0]}:${parts[1]}`;
+        return t;
+    };
 
     React.useEffect(() => {
         if (visible) {
@@ -71,9 +85,55 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                             <Ionicons name="bus" size={20} color="#6b7280" style={styles.infoIcon} />
                             <View style={styles.infoTextContainer}>
                                 <Text style={styles.infoLabel}>Ruta Asignada</Text>
-                                <Text style={styles.infoValue}>Información de ruta disponible pronto</Text>
+                                {isLoadingRoute ? (
+                                    <ActivityIndicator size="small" color="#3b82f6" style={{ alignSelf: 'flex-start' }} />
+                                ) : routeError ? (
+                                    <Text style={[styles.infoValue, { color: '#ef4444' }]}>{routeError}</Text>
+                                ) : assignedRoute ? (
+                                    <Text style={styles.infoValue}>
+                                        {assignedRoute.routeName}
+                                        {assignedRoute.turn ? ` · ${assignedRoute.turn}` : ''}
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.infoValue}>Sin ruta asignada hoy</Text>
+                                )}
                             </View>
                         </View>
+
+                        {assignedRoute?.scheduledEntryTime && (
+                            <View style={styles.infoRow}>
+                                <Ionicons name="time" size={20} color="#6b7280" style={styles.infoIcon} />
+                                <View style={styles.infoTextContainer}>
+                                    <Text style={styles.infoLabel}>Hora de salida</Text>
+                                    <Text style={styles.infoValue}>
+                                        {formatTime(assignedRoute.scheduledEntryTime)}
+                                        {assignedRoute.scheduledExpectedTime
+                                            ? ` → ${formatTime(assignedRoute.scheduledExpectedTime)}`
+                                            : ''}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {assignedRoute?.vehicle?.plate && (
+                            <View style={styles.infoRow}>
+                                <Ionicons name="car" size={20} color="#6b7280" style={styles.infoIcon} />
+                                <View style={styles.infoTextContainer}>
+                                    <Text style={styles.infoLabel}>Unidad</Text>
+                                    <Text style={styles.infoValue}>{assignedRoute.vehicle.plate}</Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {assignedRoute?.driverInfo && (
+                            <View style={styles.infoRow}>
+                                <Ionicons name="person" size={20} color="#6b7280" style={styles.infoIcon} />
+                                <View style={styles.infoTextContainer}>
+                                    <Text style={styles.infoLabel}>Chofer</Text>
+                                    <Text style={styles.infoValue}>{assignedRoute.driverInfo.name}</Text>
+                                </View>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.spacer} />

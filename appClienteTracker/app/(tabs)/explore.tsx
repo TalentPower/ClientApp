@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Text, ScrollView, Platform } from 'react-native';
+import { View, StyleSheet, Text, ScrollView, Platform, TouchableOpacity, RefreshControl } from 'react-native';
 import { QrBoardingCard } from '@/src/components/QrBoardingCard';
 import { Colors, Radii, Spacing, Shadows } from '@/src/constants/Colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -9,13 +9,17 @@ import { Announcement } from '@/src/domain/Notification';
 import { useNotifications } from '@/src/hooks/useNotifications';
 
 export default function QrAndAnnouncementsScreen() {
-    const { qrPayload, isReady, secondsLeft } = useQrCode();
+    const { qrPayload, isReady, secondsLeft, error: qrError, regenerate } = useQrCode();
     const { user } = useAuth();
-    const { announcements, isLoading } = useNotifications();
+    const { announcements, isLoading, error: annError, refresh } = useNotifications();
 
     return (
         <View style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refresh} tintColor={Colors.accent} />}
+            >
                 {/* ── Header ── */}
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Mi QR</Text>
@@ -32,6 +36,13 @@ export default function QrAndAnnouncementsScreen() {
                     isReady={isReady}
                 />
 
+                {qrError && (
+                    <TouchableOpacity onPress={regenerate} style={styles.errorBanner} accessibilityRole="button" accessibilityLabel="Reintentar QR">
+                        <IconSymbol name="exclamationmark.triangle.fill" size={18} color={Colors.accentDanger} />
+                        <Text style={styles.errorText}>{qrError}</Text>
+                    </TouchableOpacity>
+                )}
+
                 {/* ── Announcements section ── */}
                 <View style={styles.announcementsHeader}>
                     <IconSymbol name="bell.fill" size={20} color={Colors.accent} />
@@ -42,7 +53,14 @@ export default function QrAndAnnouncementsScreen() {
                     <Text style={{ color: Colors.textSecondary, marginTop: Spacing.sm }}>Cargando anuncios...</Text>
                 )}
 
-                {!isLoading && (!announcements || announcements.length === 0) && (
+                {!isLoading && annError && (
+                    <TouchableOpacity onPress={refresh} style={styles.errorBanner} accessibilityRole="button" accessibilityLabel="Reintentar carga de avisos">
+                        <IconSymbol name="exclamationmark.triangle.fill" size={18} color={Colors.accentDanger} />
+                        <Text style={styles.errorText}>{annError} (toca para reintentar)</Text>
+                    </TouchableOpacity>
+                )}
+
+                {!isLoading && !annError && (!announcements || announcements.length === 0) && (
                     <Text style={{ color: Colors.textSecondary, marginTop: Spacing.sm }}>No hay anuncios recientes.</Text>
                 )}
 
@@ -141,5 +159,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.textSecondary,
         lineHeight: 20,
+    },
+    errorBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(239,68,68,0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(239,68,68,0.3)',
+        borderRadius: Radii.md,
+        padding: Spacing.md,
+        marginTop: Spacing.sm,
+    },
+    errorText: {
+        flex: 1,
+        color: Colors.accentDanger,
+        fontSize: 13,
+        fontWeight: '600',
     },
 });

@@ -7,6 +7,7 @@ import { TripStatusBanner } from '../../src/components/TripStatusBanner';
 import { ForecastBanner } from '../../src/components/ForecastBanner';
 import { NotificationCard } from '../../src/components/NotificationCard';
 import { ProfileModal } from '../../src/components/ProfileModal';
+import { Colors, Radii, Spacing } from '../../src/constants/Colors';
 
 export default function HubScreen() {
     const insets = useSafeAreaInsets();
@@ -67,8 +68,13 @@ export default function HubScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Mis Avisos</Text>
-                <TouchableOpacity onPress={() => setProfileModalVisible(true)} style={styles.profileButton}>
-                    <Ionicons name="person-circle" size={36} color="#3b82f6" />
+                <TouchableOpacity
+                    onPress={() => setProfileModalVisible(true)}
+                    style={styles.profileButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Abrir perfil"
+                >
+                    <Ionicons name="person-circle" size={36} color={Colors.accent} />
                 </TouchableOpacity>
             </View>
 
@@ -77,7 +83,7 @@ export default function HubScreen() {
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
                 }
             >
                 {/* 1. Estado del Viaje Actual */}
@@ -89,9 +95,9 @@ export default function HubScreen() {
                 )}
 
                 {/* 2. Asistencia Mañana */}
-                {forecast && forecast.status === 'PENDING' && (
+                {forecast && (
                     <View style={styles.section}>
-                        <ForecastBanner 
+                        <ForecastBanner
                             forecast={forecast}
                             onConfirm={confirm}
                             onDecline={decline}
@@ -105,7 +111,7 @@ export default function HubScreen() {
                     <Text style={styles.sectionTitle}>Historial de Avisos</Text>
                     
                     {isLoading && notifications.length === 0 ? (
-                        <ActivityIndicator style={{ marginTop: 24 }} color="#3b82f6" />
+                        <ActivityIndicator style={{ marginTop: 24 }} color={Colors.accent} />
                     ) : notificationGroups.length > 0 ? (
                         notificationGroups.map((group, index) => (
                             <View key={index} style={styles.groupContainer}>
@@ -131,7 +137,7 @@ export default function HubScreen() {
                         ))
                     ) : (
                         <View style={styles.emptyContainer}>
-                            <Ionicons name="notifications-off-outline" size={48} color="#d1d5db" />
+                            <Ionicons name="notifications-off-outline" size={48} color={Colors.textSecondary} />
                             <Text style={styles.emptyText}>No tienes avisos nuevos</Text>
                         </View>
                     )}
@@ -149,23 +155,23 @@ export default function HubScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f3f4f6', // gray-100
+        backgroundColor: Colors.primary,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 12,
-        paddingTop: 8,
-        backgroundColor: '#fff',
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: Spacing.md,
+        paddingTop: Spacing.sm,
+        backgroundColor: Colors.secondary,
         borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
+        borderBottomColor: Colors.border,
     },
     headerTitle: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#111827',
+        color: Colors.textPrimary,
     },
     profileButton: {
         padding: 4,
@@ -174,7 +180,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingTop: 16,
+        paddingTop: Spacing.lg,
         paddingBottom: 40,
     },
     section: {
@@ -183,19 +189,19 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#111827',
-        marginLeft: 20,
-        marginBottom: 12,
+        color: Colors.textPrimary,
+        marginLeft: Spacing.xl,
+        marginBottom: Spacing.md,
     },
     groupContainer: {
-        marginBottom: 16,
-        paddingHorizontal: 16,
+        marginBottom: Spacing.lg,
+        paddingHorizontal: Spacing.lg,
     },
     groupTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#6b7280',
-        marginBottom: 12,
+        color: Colors.textSecondary,
+        marginBottom: Spacing.md,
         marginLeft: 4,
     },
     emptyContainer: {
@@ -205,7 +211,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 16,
-        color: '#9ca3af',
+        color: Colors.textSecondary,
         marginTop: 12,
     },
 });

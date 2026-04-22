@@ -8,6 +8,7 @@ import { TripProgressBar } from '@/src/components/TripProgressBar';
 import { TripStatusBanner } from '@/src/components/TripStatusBanner';
 import { Colors, Spacing } from '@/src/constants/Colors';
 import { useTrips, useAttendance } from '@/src/hooks/useTrips';
+import { useNetworkStatus } from '@/src/hooks/useNetworkStatus';
 
 const BACKGROUND_LOCATION_TASK = 'BACKGROUND_LOCATION_TASK';
 
@@ -38,13 +39,35 @@ export default function RouteTrackingScreen() {
         fetchEta,
         isLoading,
     } = useTrips();
-    const { confirmAttendance, declineAttendance } = useAttendance();
+    const {
+        confirmAttendance,
+        declineAttendance,
+        isSubmitting: isAttendanceSubmitting,
+        error: attendanceError,
+        clearError: clearAttendanceError,
+    } = useAttendance();
+    const { isConnected, isInternetReachable } = useNetworkStatus();
+    const isOffline = !isConnected || isInternetReachable === false;
 
-    const currentTrip = activeTrips.length > 0 ? activeTrips[0] : null;
+    useEffect(() => {
+        if (attendanceError) {
+            Alert.alert('Error', attendanceError, [
+                { text: 'OK', onPress: clearAttendanceError },
+            ]);
+        }
+    }, [attendanceError, clearAttendanceError]);
 
-    // ── Poll driver live location every 5s ──
+    // Prefer non-terminal trips so a completed/cancelled entry doesn't block UI transition
+    const currentTrip =
+        activeTrips.find(t => t.status !== 'COMPLETED' && t.status !== 'CANCELLED') ??
+        (activeTrips.length > 0 ? activeTrips[0] : null);
+    const tripJustFinished =
+        currentTrip?.status === 'COMPLETED' || currentTrip?.status === 'CANCELLED';
+
+    // ── Poll driver live location every 5s (pause when offline) ──
     useEffect(() => {
         if (!currentTrip) return;
+        if (isOffline) return;
 
         fetchLiveLocation(currentTrip.tripId);
         fetchRouteStops(currentTrip.tripId);
@@ -53,47 +76,79 @@ export default function RouteTrackingScreen() {
         const interval = setInterval(() => {
             fetchLiveLocation(currentTrip.tripId);
             fetchEta(currentTrip.tripId);
+            fetchRouteStops(currentTrip.tripId);
+            fetchActiveTrips();
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [currentTrip, fetchLiveLocation, fetchRouteStops, fetchEta]);
+    }, [currentTrip, isOffline, fetchLiveLocation, fetchRouteStops, fetchEta, fetchActiveTrips]);
+
+    // ── Stop background tracking when trip finishes ──
+    useEffect(() => {
+        if (!tripJustFinished) return;
+        (async () => {
+            try {
+                const running = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+                if (running) await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+            } catch (e) {
+                console.warn('Failed to stop bg location:', e);
+            }
+        })();
+    }, [tripJustFinished]);
 
     // ── Request location permissions + tracking ──
     useEffect(() => {
         let locationSubscription: Location.LocationSubscription | null = null;
+        let cancelled = false;
 
         (async () => {
-            const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-            if (foregroundStatus !== 'granted') {
-                Alert.alert('Permiso denegado', 'Necesitamos tu ubicación para guiarte.');
-                return;
+            try {
+                const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+                if (foregroundStatus !== 'granted') {
+                    Alert.alert('Permiso denegado', 'Necesitamos tu ubicación para guiarte.');
+                    return;
+                }
+
+                try {
+                    const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+                    if (backgroundStatus === 'granted') {
+                        await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
+                            accuracy: Location.Accuracy.Balanced,
+                            timeInterval: 10000,
+                            distanceInterval: 10,
+                            foregroundService: {
+                                notificationTitle: 'appClienteTracker activo',
+                                notificationBody: 'Compartiendo tu progreso en la ruta',
+                                notificationColor: '#4338CA',
+                            },
+                        });
+                    }
+                } catch (bgErr) {
+                    console.warn('Background location unavailable:', bgErr);
+                }
+
+                const initialLocation = await Location.getCurrentPositionAsync({});
+                setLocation(initialLocation);
+
+                locationSubscription = await Location.watchPositionAsync(
+                    { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
+                    (loc) => setLocation(loc)
+                );
+            } catch (err) {
+                console.error('Location init failed:', err);
+                Alert.alert('Error de ubicación', 'No se pudo iniciar el rastreo. Reintenta desde ajustes.');
             }
-
-            const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-            if (backgroundStatus === 'granted') {
-                await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
-                    accuracy: Location.Accuracy.Balanced,
-                    timeInterval: 10000,
-                    distanceInterval: 10,
-                    foregroundService: {
-                        notificationTitle: 'appClienteTracker activo',
-                        notificationBody: 'Compartiendo tu progreso en la ruta',
-                        notificationColor: '#4338CA',
-                    },
-                });
-            }
-
-            const initialLocation = await Location.getCurrentPositionAsync({});
-            setLocation(initialLocation);
-
-            locationSubscription = await Location.watchPositionAsync(
-                { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
-                (loc) => setLocation(loc)
-            );
         })();
 
         return () => {
+            cancelled = true;
             if (locationSubscription) locationSubscription.remove();
+            (async () => {
+                try {
+                    const running = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+                    if (running) await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+                } catch { /* noop */ }
+            })();
         };
     }, []);
 
@@ -104,7 +159,7 @@ export default function RouteTrackingScreen() {
 
     // Find how many stops have been completed
     const completedStopIndex = etaData
-        ? routeStops.findIndex(s => s.id === etaData.nextStopId) - 1
+        ? Math.max(-1, routeStops.findIndex(s => s.id === etaData.nextStopId) - 1)
         : -1;
 
     return (
@@ -139,7 +194,13 @@ export default function RouteTrackingScreen() {
             )}
 
             {/* BottomSheet with trip info */}
-            {currentTrip ? (
+            {tripJustFinished ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>
+                        {currentTrip?.status === 'CANCELLED' ? 'Viaje cancelado.' : 'Viaje finalizado. Gracias por viajar.'}
+                    </Text>
+                </View>
+            ) : currentTrip ? (
                 <BottomSheet
                     statusText={
                         currentTrip.status === 'READY'
@@ -155,15 +216,20 @@ export default function RouteTrackingScreen() {
                     nextStopName={etaData?.nextStopName}
                     completedStops={completedStopIndex >= 0 ? completedStopIndex + 1 : 0}
                     totalStops={routeStops.length}
+                    isSubmitting={isAttendanceSubmitting}
                     onConfirm={async () => {
-                        await confirmAttendance(currentTrip.tripId);
-                        Alert.alert('Éxito', 'Has confirmado tu asistencia al viaje.');
-                        fetchActiveTrips();
+                        const ok = await confirmAttendance(currentTrip.tripId);
+                        if (ok) {
+                            Alert.alert('Éxito', 'Has confirmado tu asistencia al viaje.');
+                            fetchActiveTrips();
+                        }
                     }}
                     onDecline={async () => {
-                        await declineAttendance(currentTrip.tripId);
-                        Alert.alert('Aviso', 'Has cancelado tu viaje de hoy.');
-                        fetchActiveTrips();
+                        const ok = await declineAttendance(currentTrip.tripId);
+                        if (ok) {
+                            Alert.alert('Aviso', 'Has cancelado tu viaje de hoy.');
+                            fetchActiveTrips();
+                        }
                     }}
                 />
             ) : (

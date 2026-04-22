@@ -19,7 +19,7 @@ export function EventCard({ eventName, driverName, onConfirm, onDecline }: Event
             if (type === 'confirm') await onConfirm();
             else await onDecline();
         } catch (error) {
-            console.error(error);
+            if (__DEV__) console.error(error);
         } finally {
             setLoading(false);
         }

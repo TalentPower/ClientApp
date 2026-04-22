@@ -1,11 +1,13 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import NetInfo from '@react-native-community/netinfo';
+import { config } from '../config/environment';
 
-// Set this to your external server URL
-export const BASE_URL = 'https://api-sipe.com';
+export const BASE_URL = config.api.baseUrl;
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
+    timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -20,9 +22,16 @@ export function setUnauthorizedCallback(cb: () => void) {
     _onUnauthorized = cb;
 }
 
-// Interceptor to inject JWT on every request securely
+// Interceptor to inject JWT + short-circuit offline requests
 apiClient.interceptors.request.use(
     async (config) => {
+        const net = await NetInfo.fetch();
+        if (net.isConnected === false || net.isInternetReachable === false) {
+            const err: any = new Error('Sin conexión a internet. Verifica tu red.');
+            err.isOffline = true;
+            err.code = 'OFFLINE';
+            throw err;
+        }
         const token = await SecureStore.getItemAsync('client_jwt');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -38,7 +47,7 @@ apiClient.interceptors.response.use(
     async (error) => {
         if (error.response?.status === 401 && !_handling401) {
             _handling401 = true;
-            console.warn('Unauthorized request - Token may be invalid or expired');
+            if (__DEV__) console.warn('Unauthorized request - Token may be invalid or expired');
             await SecureStore.deleteItemAsync('client_jwt');
             await SecureStore.deleteItemAsync('client_info');
             // Notify AuthProvider → sets user = null → _layout redirects to /login

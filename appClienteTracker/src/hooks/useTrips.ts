@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { TripRepository } from '../infrastructure/TripRepository';
-import { Trip, Coordinate, RouteStop, EtaUpdate, FullRouteData, StopVisit, NotificationItem, AttendanceForecast } from '../domain/Trip';
+import { Trip, Coordinate, RouteStop, EtaUpdate, FullRouteData, StopVisit, NotificationItem, AttendanceForecast, AssignedRoute } from '../domain/Trip';
 
 // ─── Hook: useTrips ───
 export function useTrips() {
@@ -19,8 +19,8 @@ export function useTrips() {
             const trips = await TripRepository.getActiveTrips();
             setActiveTrips(trips);
         } catch (err: any) {
-            console.error('Failed fetching trips', err);
-            setError('No se pudieron cargar tus rutas.');
+            if (__DEV__) console.error('Failed fetching trips', err);
+            setError(err?.isOffline ? 'Sin conexión. Verifica tu red.' : 'No se pudieron cargar tus rutas.');
         } finally {
             setIsLoading(false);
         }
@@ -40,7 +40,7 @@ export function useTrips() {
             const data = await TripRepository.getRouteStops(tripId);
             setRouteStops(data.stops);
         } catch (err) {
-            console.warn('No route stops available');
+            if (__DEV__) console.warn('No route stops available');
         }
     }, []);
 
@@ -58,7 +58,7 @@ export function useTrips() {
             const route = await TripRepository.getFullRoute(tripId);
             setFullRoute(route);
         } catch (err) {
-            console.warn('Full route not available yet');
+            if (__DEV__) console.warn('Full route not available yet');
         }
     }, []);
 
@@ -98,11 +98,18 @@ export function useTrips() {
 // Uses ClientAttendanceController → POST /api/client/attendance/status
 export function useAttendance() {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const confirmAttendance = async (tripId: number) => {
         setIsSubmitting(true);
+        setError(null);
         try {
             await TripRepository.updateAttendanceStatus(tripId, 'CONFIRMED');
+            return true;
+        } catch (err: any) {
+            const msg = err?.message || 'No se pudo confirmar tu asistencia. Revisa tu conexión.';
+            setError(msg);
+            return false;
         } finally {
             setIsSubmitting(false);
         }
@@ -110,8 +117,14 @@ export function useAttendance() {
 
     const declineAttendance = async (tripId: number) => {
         setIsSubmitting(true);
+        setError(null);
         try {
             await TripRepository.updateAttendanceStatus(tripId, 'DECLINED');
+            return true;
+        } catch (err: any) {
+            const msg = err?.message || 'No se pudo registrar la cancelación. Revisa tu conexión.';
+            setError(msg);
+            return false;
         } finally {
             setIsSubmitting(false);
         }
@@ -121,6 +134,8 @@ export function useAttendance() {
         confirmAttendance,
         declineAttendance,
         isSubmitting,
+        error,
+        clearError: () => setError(null),
     };
 }
 
@@ -135,7 +150,7 @@ export function useNotifications() {
             const data = await TripRepository.getNotificationHistory();
             setNotifications(data);
         } catch (err) {
-            console.error('Failed fetching notifications', err);
+            if (__DEV__) console.error('Failed fetching notifications', err);
         } finally {
             setIsLoading(false);
         }
@@ -152,19 +167,62 @@ export function useNotifications() {
     };
 }
 
+// ─── Hook: useAssignedRoute ───
+// Fetches today's route assignment(s) for the current client.
+export function useAssignedRoute() {
+    const [assignedRoutes, setAssignedRoutes] = useState<AssignedRoute[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const data = await TripRepository.getAssignedRoute();
+            setAssignedRoutes(data);
+        } catch (err: any) {
+            if (__DEV__) console.warn('Failed fetching assigned route', err);
+            setError(err?.message || 'No se pudo cargar tu ruta asignada.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetch();
+    }, [fetch]);
+
+    return {
+        assignedRoutes,
+        primary: assignedRoutes[0] ?? null,
+        isLoading,
+        error,
+        refresh: fetch,
+    };
+}
+
 // ─── Hook: useAttendanceForecast ───
 export function useAttendanceForecast() {
     const [forecast, setForecast] = useState<AttendanceForecast | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [error, setError] = useState<string | null>(null);
+
     const fetchForecast = useCallback(async () => {
         try {
             setIsLoading(true);
+            setError(null);
             const data = await TripRepository.getTomorrowForecast();
             setForecast(data);
-        } catch (err) {
-            console.error('Failed fetching forecast', err);
+        } catch (err: any) {
+            if (__DEV__) console.error('Failed fetching forecast', err);
+            // 404 → no forecast yet; treat as empty, not error
+            if (err?.response?.status === 404) {
+                setForecast(null);
+            } else {
+                setError(err?.message || 'No se pudo cargar tu asistencia para mañana.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -179,6 +237,8 @@ export function useAttendanceForecast() {
         try {
             await TripRepository.confirmForecastAttendance(forecastId);
             await fetchForecast();
+        } catch (err) {
+            throw err;
         } finally {
             setIsSubmitting(false);
         }
@@ -189,6 +249,8 @@ export function useAttendanceForecast() {
         try {
             await TripRepository.declineForecastAttendance(forecastId);
             await fetchForecast();
+        } catch (err) {
+            throw err;
         } finally {
             setIsSubmitting(false);
         }
@@ -198,8 +260,10 @@ export function useAttendanceForecast() {
         forecast,
         isLoading,
         isSubmitting,
+        error,
         confirm,
         decline,
         refresh: fetchForecast,
+        clearError: () => setError(null),
     };
 }

@@ -6,6 +6,7 @@ import { Colors } from '@/src/constants/Colors';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuth, AuthProvider } from '@/src/hooks/useAuth';
 import { usePushNotifications } from '@/src/hooks/usePushNotifications';
+import { OfflineBanner } from '@/src/components/OfflineBanner';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
@@ -67,6 +68,9 @@ function RootLayoutNav() {
                     <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
                     <Stack.Screen name="(modals)/event-modal" options={{ presentation: 'modal', headerShown: false }} />
                 </Stack>
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }} pointerEvents="box-none">
+                    <OfflineBanner />
+                </View>
                 <StatusBar style="light" />
             </ThemeProvider>
         </GestureHandlerRootView>

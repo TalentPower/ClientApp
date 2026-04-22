@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, Animated, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors, Radii, Shadows, Spacing } from '../constants/Colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -15,6 +15,7 @@ interface BottomSheetProps {
     totalStops?: number;
     onConfirm?: () => void;
     onDecline?: () => void;
+    isSubmitting?: boolean;
     style?: ViewStyle;
 }
 
@@ -29,6 +30,7 @@ export function BottomSheet({
     totalStops,
     onConfirm,
     onDecline,
+    isSubmitting = false,
     style,
 }: BottomSheetProps) {
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -107,12 +109,32 @@ export function BottomSheet({
 
                     {/* Action buttons */}
                     <View style={styles.buttonRow}>
-                        <TouchableOpacity style={[styles.button, styles.btnDecline]} onPress={onDecline}>
-                            <Text style={styles.btnTextDecline}>Declinar</Text>
+                        <TouchableOpacity
+                            style={[styles.button, styles.btnDecline, isSubmitting && styles.btnDisabled]}
+                            onPress={onDecline}
+                            disabled={isSubmitting}
+                            accessibilityRole="button"
+                            accessibilityLabel="Declinar viaje"
+                        >
+                            {isSubmitting ? (
+                                <ActivityIndicator color={Colors.textPrimary} />
+                            ) : (
+                                <Text style={styles.btnTextDecline}>Declinar</Text>
+                            )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.button, styles.btnConfirm]} onPress={onConfirm}>
-                            <Text style={styles.btnTextConfirm}>Confirmar</Text>
+                        <TouchableOpacity
+                            style={[styles.button, styles.btnConfirm, isSubmitting && styles.btnDisabled]}
+                            onPress={onConfirm}
+                            disabled={isSubmitting}
+                            accessibilityRole="button"
+                            accessibilityLabel="Confirmar asistencia"
+                        >
+                            {isSubmitting ? (
+                                <ActivityIndicator color={Colors.white} />
+                            ) : (
+                                <Text style={styles.btnTextConfirm}>Confirmar</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -272,6 +294,9 @@ const styles = StyleSheet.create({
     },
     btnConfirm: {
         backgroundColor: Colors.accent,
+    },
+    btnDisabled: {
+        opacity: 0.6,
     },
     btnTextDecline: {
         color: Colors.textPrimary,

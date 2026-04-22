@@ -10,6 +10,7 @@ import {
     StopVisit,
     NotificationItem,
     AttendanceForecast,
+    AssignedRoute,
 } from '../domain/Trip';
 import * as SecureStore from 'expo-secure-store';
 
@@ -48,6 +49,36 @@ export class TripRepository {
             driverInfo: trip.driverInfo
                 ? { name: trip.driverInfo.name, phone: trip.driverInfo.phone }
                 : undefined,
+        }));
+    }
+
+    /**
+     * GET /api/client/trips/assigned-route
+     * Returns today's active RouteAssignments for the authenticated client,
+     * enriched with scheduled times, driver, vehicle and first RouteTrip.
+     */
+    static async getAssignedRoute(): Promise<AssignedRoute[]> {
+        const response = await apiClient.get<any>('/api/client/trips/assigned-route');
+        const dataArray = Array.isArray(response.data)
+            ? response.data
+            : (Array.isArray(response.data?.data) ? response.data.data : []);
+
+        return dataArray.map((r: any) => ({
+            assignmentId: r.assignmentId,
+            routeId: r.routeId,
+            routeName: r.routeName,
+            turn: r.turn ?? null,
+            direction: r.direction ?? null,
+            capacity: r.capacity ?? null,
+            date: r.date,
+            tripId: r.tripId ?? null,
+            tripStatus: r.tripStatus ?? null,
+            scheduledEntryTime: r.scheduledEntryTime ?? null,
+            scheduledExpectedTime: r.scheduledExpectedTime ?? null,
+            vehicle: r.vehicle ? { id: r.vehicle.id, plate: r.vehicle.plate } : null,
+            driverInfo: r.driverInfo
+                ? { name: r.driverInfo.name, phone: r.driverInfo.phone }
+                : null,
         }));
     }
 

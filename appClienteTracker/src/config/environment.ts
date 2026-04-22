@@ -18,6 +18,8 @@ export const config = {
                 active: '/api/client/trips/active',
                 // ClientTripController → GET /api/client/trips/{tripId}/live-location
                 liveLocation: (tripId: number) => `/api/client/trips/${tripId}/live-location`,
+                // ClientTripController → GET /api/client/trips/assigned-route
+                assignedRoute: '/api/client/trips/assigned-route',
             },
             attendance: {
                 // ClientAttendanceController → POST /api/client/attendance/status

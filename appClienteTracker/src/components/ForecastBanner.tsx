@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { AttendanceForecast } from '../domain/Trip';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,18 +11,39 @@ interface ForecastBannerProps {
 }
 
 export const ForecastBanner: React.FC<ForecastBannerProps> = ({ forecast, onConfirm, onDecline, isSubmitting }) => {
-    
-    // Sólo mostramos el banner si está pendiente, o si queremos mostrar el estado final.
-    // El plan dice: "Card destacada grande que aparece arriba del historial cuando hay un forecast pendiente para mañana."
-    if (forecast.status !== 'PENDING') {
-        return null; // O se podría renderizar una versión minimizada diciendo "Asistencia confirmada para mañana"
-    }
-
     const dateStr = new Date(forecast.tripDate).toLocaleDateString('es-ES', {
         weekday: 'long',
         month: 'long',
         day: 'numeric'
     });
+
+    // Show a compact state banner if already confirmed/declined
+    if (forecast.status === 'CONFIRMED' || forecast.status === 'DECLINED') {
+        const confirmed = forecast.status === 'CONFIRMED';
+        return (
+            <View style={[styles.container, styles.finalContainer]}>
+                <View style={styles.header}>
+                    <View style={[styles.iconContainer, { backgroundColor: confirmed ? '#dcfce7' : '#fee2e2' }]}>
+                        <Ionicons
+                            name={confirmed ? 'checkmark-circle' : 'close-circle'}
+                            size={24}
+                            color={confirmed ? '#16a34a' : '#dc2626'}
+                        />
+                    </View>
+                    <View style={styles.headerText}>
+                        <Text style={styles.title}>
+                            {confirmed ? 'Asistencia confirmada' : 'No viajarás mañana'}
+                        </Text>
+                        <Text style={styles.subtitle}>{forecast.routeName} — {dateStr}</Text>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    if (forecast.status !== 'PENDING') {
+        return null;
+    }
 
     return (
         <View style={styles.container}>
@@ -42,19 +63,31 @@ export const ForecastBanner: React.FC<ForecastBannerProps> = ({ forecast, onConf
             </View>
 
             <View style={styles.actions}>
-                <TouchableOpacity 
-                    style={[styles.button, styles.declineButton]} 
+                <TouchableOpacity
+                    style={[styles.button, styles.declineButton, isSubmitting && styles.buttonDisabled]}
                     disabled={isSubmitting}
                     onPress={() => onDecline(forecast.forecastId)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Declinar viaje de mañana"
                 >
-                    <Text style={styles.declineText}>No viajaré</Text>
+                    {isSubmitting ? (
+                        <ActivityIndicator color="#6d28d9" />
+                    ) : (
+                        <Text style={styles.declineText}>No viajaré</Text>
+                    )}
                 </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.button, styles.confirmButton]}
+                <TouchableOpacity
+                    style={[styles.button, styles.confirmButton, isSubmitting && styles.buttonDisabled]}
                     disabled={isSubmitting}
                     onPress={() => onConfirm(forecast.forecastId)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirmar viaje de mañana"
                 >
-                    <Text style={styles.confirmText}>Sí, confirmo</Text>
+                    {isSubmitting ? (
+                        <ActivityIndicator color="#ffffff" />
+                    ) : (
+                        <Text style={styles.confirmText}>Sí, confirmo</Text>
+                    )}
                 </TouchableOpacity>
             </View>
         </View>
@@ -149,5 +182,12 @@ const styles = StyleSheet.create({
         color: '#6d28d9',
         fontWeight: '600',
         fontSize: 16,
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    finalContainer: {
+        backgroundColor: '#f9fafb',
+        borderColor: '#e5e7eb',
     },
 });

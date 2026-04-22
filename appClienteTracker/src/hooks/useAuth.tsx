@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(stored);
             }
         } catch (e) {
-            console.error('Failed to load stored auth:', e);
+            if (__DEV__) console.error('Failed to load stored auth:', e);
         } finally {
             setIsLoading(false);
         }
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await AuthRepository.logout();
             setUser(null);
         } catch (e) {
-            console.error('Logout error:', e);
+            if (__DEV__) console.error('Logout error:', e);
         }
     };
 

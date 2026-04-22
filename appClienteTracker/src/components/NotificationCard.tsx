@@ -1,16 +1,31 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { NotificationItem } from '../domain/Trip';
 import { Ionicons } from '@expo/vector-icons';
 
 interface NotificationCardProps {
     item: NotificationItem;
-    onAction?: (action: 'confirm' | 'decline', entityId?: number) => void;
+    onAction?: (action: 'confirm' | 'decline', entityId?: number) => void | Promise<any>;
     // Just in case it's a forecast that we know the status of in the notification
     forecastStatus?: 'PENDING' | 'CONFIRMED' | 'DECLINED';
 }
 
 export const NotificationCard: React.FC<NotificationCardProps> = ({ item, onAction, forecastStatus }) => {
+    const [submitting, setSubmitting] = useState<null | 'confirm' | 'decline'>(null);
+    const [localError, setLocalError] = useState<string | null>(null);
+
+    const handleAction = async (action: 'confirm' | 'decline') => {
+        if (!onAction) return;
+        setSubmitting(action);
+        setLocalError(null);
+        try {
+            await onAction(action, item.entityId);
+        } catch (err: any) {
+            setLocalError(err?.message || 'No se pudo completar la acción. Intenta de nuevo.');
+        } finally {
+            setSubmitting(null);
+        }
+    };
     
     const getIconConfig = () => {
         switch (item.type) {
@@ -39,20 +54,42 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ item, onActi
             </View>
 
             {item.type === 'ATTENDANCE_FORECAST' && forecastStatus === 'PENDING' && (
-                <View style={styles.actions}>
-                    <TouchableOpacity 
-                        style={[styles.button, styles.declineButton]}
-                        onPress={() => onAction && onAction('decline', item.entityId)}
-                    >
-                        <Text style={styles.declineText}>Declinar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[styles.button, styles.confirmButton]}
-                        onPress={() => onAction && onAction('confirm', item.entityId)}
-                    >
-                        <Text style={styles.confirmText}>Confirmar</Text>
-                    </TouchableOpacity>
-                </View>
+                <>
+                    <View style={styles.actions}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.declineButton, submitting && styles.buttonDisabled]}
+                            disabled={!!submitting}
+                            onPress={() => handleAction('decline')}
+                            accessibilityRole="button"
+                            accessibilityLabel="Declinar aviso"
+                        >
+                            {submitting === 'decline' ? (
+                                <ActivityIndicator size="small" color="#ef4444" />
+                            ) : (
+                                <Text style={styles.declineText}>Declinar</Text>
+                            )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.button, styles.confirmButton, submitting && styles.buttonDisabled]}
+                            disabled={!!submitting}
+                            onPress={() => handleAction('confirm')}
+                            accessibilityRole="button"
+                            accessibilityLabel="Confirmar aviso"
+                        >
+                            {submitting === 'confirm' ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.confirmText}>Confirmar</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                    {localError && (
+                        <TouchableOpacity onPress={() => setLocalError(null)} style={styles.errorRow}>
+                            <Ionicons name="alert-circle" size={14} color="#b91c1c" />
+                            <Text style={styles.errorText}>{localError}</Text>
+                        </TouchableOpacity>
+                    )}
+                </>
             )}
 
             {item.type === 'ATTENDANCE_FORECAST' && forecastStatus && forecastStatus !== 'PENDING' && (
@@ -184,5 +221,20 @@ const styles = StyleSheet.create({
     },
     badgeTextRed: {
         color: '#b91c1c',
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    errorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 8,
+        paddingHorizontal: 4,
+    },
+    errorText: {
+        fontSize: 12,
+        color: '#b91c1c',
+        flex: 1,
     },
 });

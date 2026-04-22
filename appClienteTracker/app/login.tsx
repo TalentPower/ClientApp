@@ -42,7 +42,7 @@ export default function LoginScreen() {
                 {error && <Text style={styles.errorText}>{error}</Text>}
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Telefono</Text>
+                    <Text style={styles.label}>Teléfono</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="5512345678"
@@ -50,6 +50,9 @@ export default function LoginScreen() {
                         value={phone}
                         onChangeText={setPhone}
                         keyboardType="phone-pad"
+                        autoComplete="tel"
+                        textContentType="telephoneNumber"
+                        accessibilityLabel="Teléfono"
                     />
                 </View>
 
@@ -64,6 +67,9 @@ export default function LoginScreen() {
                         secureTextEntry
                         keyboardType="number-pad"
                         maxLength={3}
+                        autoComplete="password"
+                        textContentType="password"
+                        accessibilityLabel="Contraseña"
                     />
                 </View>
 
@@ -71,15 +77,23 @@ export default function LoginScreen() {
                     style={[styles.button, (!isValidForm || isLoading) && styles.buttonDisabled]}
                     onPress={handleLogin}
                     disabled={!isValidForm || isLoading}
+                    accessibilityRole="button"
+                    accessibilityLabel="Iniciar sesión"
+                    accessibilityState={{ disabled: !isValidForm || isLoading, busy: isLoading }}
                 >
                     {isLoading ? (
                         <ActivityIndicator color={Colors.white} />
                     ) : (
-                        <Text style={styles.buttonText}>Iniciar Sesion</Text>
+                        <Text style={styles.buttonText}>Iniciar Sesión</Text>
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.registerLink} onPress={() => router.push('/register')}>
+                <TouchableOpacity
+                    style={styles.registerLink}
+                    onPress={() => router.push('/register')}
+                    accessibilityRole="link"
+                    accessibilityLabel="Crear cuenta nueva"
+                >
                     <Text style={styles.registerLinkText}>
                         ¿Primera vez?{' '}
                         <Text style={styles.registerLinkAccent}>Crear cuenta</Text>
