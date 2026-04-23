@@ -196,9 +196,11 @@ export class TripRepository {
         try {
             const response = await apiClient.get<BackendApiResponse<AttendanceForecast>>('/api/client/attendance/forecast/tomorrow');
             return response.data.data;
-        } catch {
-            // Usually returns 404 if no forecast exists for tomorrow
-            return null;
+        } catch (err: any) {
+            // 404 → no forecast yet, treat as empty (not error)
+            if (err?.response?.status === 404) return null;
+            // Network/5xx → propagate so hook can show error state
+            throw err;
         }
     }
 

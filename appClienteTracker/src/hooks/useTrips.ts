@@ -234,10 +234,15 @@ export function useAttendanceForecast() {
 
     const confirm = async (forecastId: number) => {
         setIsSubmitting(true);
+        setError(null);
         try {
             await TripRepository.confirmForecastAttendance(forecastId);
             await fetchForecast();
-        } catch (err) {
+        } catch (err: any) {
+            const msg = err?.isOffline
+                ? 'Sin conexión. Verifica tu red.'
+                : err?.message || 'No se pudo confirmar tu asistencia.';
+            setError(msg);
             throw err;
         } finally {
             setIsSubmitting(false);
@@ -246,10 +251,15 @@ export function useAttendanceForecast() {
 
     const decline = async (forecastId: number) => {
         setIsSubmitting(true);
+        setError(null);
         try {
             await TripRepository.declineForecastAttendance(forecastId);
             await fetchForecast();
-        } catch (err) {
+        } catch (err: any) {
+            const msg = err?.isOffline
+                ? 'Sin conexión. Verifica tu red.'
+                : err?.message || 'No se pudo registrar la cancelación.';
+            setError(msg);
             throw err;
         } finally {
             setIsSubmitting(false);

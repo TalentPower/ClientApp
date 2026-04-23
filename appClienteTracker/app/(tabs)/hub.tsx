@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTrips, useNotifications, useAttendanceForecast } from '../../src/hooks/useTrips';
@@ -35,17 +35,16 @@ export default function HubScreen() {
     const currentTrip = activeTrips.length > 0 ? activeTrips[0] : undefined;
     const isLoading = isLoadingTrips || isLoadingNotifs || isLoadingForecast;
 
-    // Agrupamos notificaciones por fecha: hoy, ayer, más antiguas
-    const groupNotifications = () => {
+    // Agrupamos notificaciones por fecha: hoy, anteriores. Memoized para evitar jank.
+    const notificationGroups = useMemo(() => {
         if (!notifications || !notifications.length) return [];
-        
-        // Simple mock grouping for now, ideally by exact date ignoring time
+
         const today: any[] = [];
         const older: any[] = [];
-        
+
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
-        
+
         notifications.forEach(n => {
             const dateStr = new Date(n.createdAt).toISOString().split('T')[0];
             if (dateStr === todayStr) {
@@ -54,14 +53,21 @@ export default function HubScreen() {
                 older.push(n);
             }
         });
-        
+
         return [
             { title: 'Hoy', data: today },
             { title: 'Anteriores', data: older }
         ].filter(g => g.data.length > 0);
-    };
+    }, [notifications]);
 
-    const notificationGroups = groupNotifications();
+    const handleForecastAction = async (action: 'confirm' | 'decline', id: number) => {
+        try {
+            if (action === 'confirm') await confirm(id);
+            else await decline(id);
+        } catch (err: any) {
+            Alert.alert('Error', err?.message || 'No se pudo procesar tu respuesta. Intenta de nuevo.');
+        }
+    };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -99,8 +105,8 @@ export default function HubScreen() {
                     <View style={styles.section}>
                         <ForecastBanner
                             forecast={forecast}
-                            onConfirm={confirm}
-                            onDecline={decline}
+                            onConfirm={(id) => handleForecastAction('confirm', id)}
+                            onDecline={(id) => handleForecastAction('decline', id)}
                             isSubmitting={isSubmittingForecast}
                         />
                     </View>
@@ -125,11 +131,9 @@ export default function HubScreen() {
                                                 ? forecast?.status 
                                                 : undefined
                                         } 
-                                        onAction={(action, id) => {
-                                            if (id) {
-                                                if (action === 'confirm') confirm(id);
-                                                if (action === 'decline') decline(id);
-                                            }
+                                        onAction={async (action, id) => {
+                                            if (!id) return;
+                                            await handleForecastAction(action, id);
                                         }}
                                     />
                                 ))}
