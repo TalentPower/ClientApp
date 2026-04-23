@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuth, AuthProvider } from '@/src/hooks/useAuth';
 import { usePushNotifications } from '@/src/hooks/usePushNotifications';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
@@ -79,8 +80,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
     return (
-        <AuthProvider>
-            <RootLayoutNav />
-        </AuthProvider>
+        <ErrorBoundary>
+            <AuthProvider>
+                <RootLayoutNav />
+            </AuthProvider>
+        </ErrorBoundary>
     );
 }

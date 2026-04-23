@@ -119,8 +119,8 @@ export default function HubScreen() {
                     {isLoading && notifications.length === 0 ? (
                         <ActivityIndicator style={{ marginTop: 24 }} color={Colors.accent} />
                     ) : notificationGroups.length > 0 ? (
-                        notificationGroups.map((group, index) => (
-                            <View key={index} style={styles.groupContainer}>
+                        notificationGroups.map((group) => (
+                            <View key={group.title} style={styles.groupContainer}>
                                 <Text style={styles.groupTitle}>{group.title}</Text>
                                 {group.data.map(item => (
                                     <NotificationCard 

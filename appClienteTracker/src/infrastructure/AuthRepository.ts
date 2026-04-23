@@ -24,11 +24,12 @@ export class AuthRepository {
             }
         );
 
-        const authData = response.data.data;
-        if (authData.jwt) {
-            await SecureStore.setItemAsync('client_jwt', authData.jwt);
-            await SecureStore.setItemAsync('client_info', JSON.stringify(authData));
+        const authData = response.data?.data;
+        if (!authData || !authData.jwt) {
+            throw new Error('Respuesta de autenticación inválida. Intenta de nuevo.');
         }
+        await SecureStore.setItemAsync('client_jwt', authData.jwt);
+        await SecureStore.setItemAsync('client_info', JSON.stringify(authData));
 
         return authData;
     }
@@ -40,10 +41,15 @@ export class AuthRepository {
 
     static async getStoredAuth(): Promise<AuthResponse | null> {
         const data = await SecureStore.getItemAsync('client_info');
-        if (data) {
+        if (!data) return null;
+        try {
             return JSON.parse(data) as AuthResponse;
+        } catch {
+            // Corrupted store — clear and force re-login
+            await SecureStore.deleteItemAsync('client_info');
+            await SecureStore.deleteItemAsync('client_jwt');
+            return null;
         }
-        return null;
     }
 
     /**
@@ -56,7 +62,9 @@ export class AuthRepository {
             config.api.endpoints.auth.registerAuto,
             { phone }
         );
-        return response.data.data;
+        const data = response.data?.data;
+        if (!data) throw new Error('Respuesta de registro inválida.');
+        return data;
     }
 
     /**
@@ -68,6 +76,8 @@ export class AuthRepository {
             config.api.endpoints.auth.registerExplicit,
             { phone, password }
         );
-        return response.data.data;
+        const data = response.data?.data;
+        if (!data) throw new Error('Respuesta de registro inválida.');
+        return data;
     }
 }

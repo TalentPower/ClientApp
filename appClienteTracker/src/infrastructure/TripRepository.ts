@@ -133,7 +133,7 @@ export class TripRepository {
         const response = await apiClient.get<BackendApiResponse<RouteStopsResponse>>(
             `/api/trip-locations/${tripId}/route-stops`
         );
-        return response.data.data;
+        return response.data?.data ?? ({ stops: [] } as RouteStopsResponse);
     }
 
     /**
@@ -144,7 +144,9 @@ export class TripRepository {
         const response = await apiClient.get<BackendApiResponse<EtaUpdate>>(
             `/api/trip-locations/${tripId}/eta`
         );
-        return response.data.data;
+        const data = response.data?.data;
+        if (!data) throw new Error('ETA no disponible.');
+        return data;
     }
 
     /**
@@ -155,7 +157,9 @@ export class TripRepository {
         const response = await apiClient.get<BackendApiResponse<FullRouteData>>(
             `/api/trip-locations/${tripId}/full-route`
         );
-        return response.data.data;
+        const data = response.data?.data;
+        if (!data) throw new Error('Ruta completa no disponible.');
+        return data;
     }
 
     /**
@@ -166,7 +170,8 @@ export class TripRepository {
         const response = await apiClient.get<BackendApiResponse<StopVisit[]>>(
             `/api/trip-locations/${tripId}/stop-visits`
         );
-        return response.data.data;
+        const data = response.data?.data;
+        return Array.isArray(data) ? data : [];
     }
 
     // ─────────────────────────────────────────
@@ -180,7 +185,9 @@ export class TripRepository {
         const response = await apiClient.get<BackendApiResponse<RealtimeRouteData>>(
             `/api/routes/realtime/${routeId}/live`
         );
-        return response.data.data;
+        const data = response.data?.data;
+        if (!data) throw new Error('Datos en tiempo real no disponibles.');
+        return data;
     }
 
     // ─────────────────────────────────────────
@@ -198,7 +205,7 @@ export class TripRepository {
     static async getTomorrowForecast(): Promise<AttendanceForecast | null> {
         try {
             const response = await apiClient.get<BackendApiResponse<AttendanceForecast>>('/api/client/attendance/forecast/tomorrow');
-            return response.data.data;
+            return response.data?.data ?? null;
         } catch (err: any) {
             // 404 → no forecast yet, treat as empty (not error)
             if (err?.response?.status === 404) return null;
