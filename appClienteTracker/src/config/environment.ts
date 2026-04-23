@@ -4,6 +4,7 @@
 export const config = {
     api: {
         baseUrl: 'https://api-sipe.com',
+        timeoutMs: 15000,
         endpoints: {
             auth: {
                 // ClientAuthController → POST /api/client/auth/login
@@ -45,5 +46,20 @@ export const config = {
                 list: '/api/notifications',
             },
         },
+    },
+    polling: {
+        tripLiveMs: 5000,       // active-trip map refresh
+    },
+    location: {
+        foregroundIntervalMs: 3000,
+        foregroundDistanceM: 5,
+        backgroundIntervalMs: 10000,
+        backgroundDistanceM: 10,
+    },
+    qr: {
+        expirySeconds: 60,
+    },
+    i18n: {
+        locale: 'es-MX',
     },
 };

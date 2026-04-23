@@ -52,11 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(data);
             return data;
         } catch (err: any) {
-            const data = err?.response?.data;
+            const data = err?.response?.data ?? {};
+            const detail = Array.isArray(data?.details) ? data.details[0] : undefined;
             setError(
-                (Array.isArray(data?.details) && data.details[0]) ||
+                detail ||
                 data?.message ||
-                'Credenciales incorrectas.'
+                (err?.isOffline ? 'Sin conexión. Verifica tu red.' : 'Credenciales incorrectas.')
             );
             throw err;
         } finally {

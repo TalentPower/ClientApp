@@ -55,17 +55,24 @@ export function MapSurface({
     }, [busLocation, pulseAnim]);
 
     // Recenter map on bus when it moves (follow mode)
+    // Throttle by 4-decimal precision (~11m) to avoid GPS-noise jitter + re-animation jank
     useEffect(() => {
         if (!busLocation || !mapRef.current) return;
-        const key = `${busLocation.latitude.toFixed(5)},${busLocation.longitude.toFixed(5)}`;
+        const key = `${busLocation.latitude.toFixed(4)},${busLocation.longitude.toFixed(4)}`;
         if (key === lastFollowedRef.current) return;
         lastFollowedRef.current = key;
-        mapRef.current.animateToRegion({
-            latitude: busLocation.latitude,
-            longitude: busLocation.longitude,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.015,
-        }, 600);
+        // Guard: ref may be nulled between throttle check + call if unmounted mid-frame
+        if (!mapRef.current) return;
+        try {
+            mapRef.current.animateToRegion({
+                latitude: busLocation.latitude,
+                longitude: busLocation.longitude,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.015,
+            }, 600);
+        } catch (e) {
+            if (__DEV__) console.warn('animateToRegion failed:', e);
+        }
     }, [busLocation]);
 
     // Polyline re-render key (refresh if stops change)

@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { config } from '../config/environment';
+
+const QR_EXPIRY_S = config.qr.expirySeconds;
+const QR_EXPIRY_MS = QR_EXPIRY_S * 1000;
 
 /**
  * Hook that generates a secure QR payload for boarding check-in.
@@ -9,7 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 export function useQrCode() {
     const [qrPayload, setQrPayload] = useState<string>('');
     const [isReady, setIsReady] = useState(false);
-    const [secondsLeft, setSecondsLeft] = useState(60);
+    const [secondsLeft, setSecondsLeft] = useState(QR_EXPIRY_S);
     const [error, setError] = useState<string | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -35,14 +40,14 @@ export function useQrCode() {
                 email: authData.email,
                 cid: authData.companyId,
                 ts: timestamp,
-                exp: timestamp + 60000, // Expires in 60s
+                exp: timestamp + QR_EXPIRY_MS,
             });
 
             // Base64 encode for QR
             const encoded = btoa(rawPayload);
             setQrPayload(encoded);
             setIsReady(true);
-            setSecondsLeft(60);
+            setSecondsLeft(QR_EXPIRY_S);
         } catch (err: any) {
             if (__DEV__) console.error('Error generating QR payload:', err);
             setIsReady(false);
@@ -51,22 +56,39 @@ export function useQrCode() {
     }, []);
 
     useEffect(() => {
-        // Generate immediately
+        const startTimers = () => {
+            if (intervalRef.current || countdownRef.current) return;
+            intervalRef.current = setInterval(() => {
+                generatePayload();
+            }, QR_EXPIRY_MS);
+            countdownRef.current = setInterval(() => {
+                setSecondsLeft((prev) => (prev > 0 ? prev - 1 : QR_EXPIRY_S));
+            }, 1000);
+        };
+
+        const stopTimers = () => {
+            if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+            if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+        };
+
+        // Generate immediately + start
         generatePayload();
+        startTimers();
 
-        // Regenerate every 60 seconds
-        intervalRef.current = setInterval(() => {
-            generatePayload();
-        }, 60000);
-
-        // Countdown timer
-        countdownRef.current = setInterval(() => {
-            setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 60));
-        }, 1000);
+        // Pause/resume on app background/foreground — avoid battery drain + stale QR
+        const handleAppState = (next: AppStateStatus) => {
+            if (next === 'active') {
+                generatePayload(); // refresh stale payload on resume
+                startTimers();
+            } else {
+                stopTimers();
+            }
+        };
+        const sub = AppState.addEventListener('change', handleAppState);
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            if (countdownRef.current) clearInterval(countdownRef.current);
+            stopTimers();
+            sub.remove();
         };
     }, [generatePayload]);
 

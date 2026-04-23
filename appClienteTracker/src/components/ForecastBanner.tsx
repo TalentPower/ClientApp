@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { AttendanceForecast } from '../domain/Trip';
 import { Ionicons } from '@expo/vector-icons';
+import { config } from '../config/environment';
 
 interface ForecastBannerProps {
     forecast: AttendanceForecast;
@@ -11,7 +12,7 @@ interface ForecastBannerProps {
 }
 
 export const ForecastBanner: React.FC<ForecastBannerProps> = ({ forecast, onConfirm, onDecline, isSubmitting }) => {
-    const dateStr = new Date(forecast.tripDate).toLocaleDateString('es-ES', {
+    const dateStr = new Date(forecast.tripDate).toLocaleDateString(config.i18n.locale, {
         weekday: 'long',
         month: 'long',
         day: 'numeric'

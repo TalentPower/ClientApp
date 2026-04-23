@@ -38,7 +38,8 @@ export default function RegisterScreen() {
         try {
             if (mode === 'auto') {
                 const result = await AuthRepository.registerAuto(normalizedPhone);
-                setGeneratedPin(result.generatedPassword ?? normalizedPhone.slice(-3));
+                const fallbackPin = normalizedPhone.length >= 3 ? normalizedPhone.slice(-3) : '---';
+                setGeneratedPin(result.generatedPassword ?? fallbackPin);
             } else {
                 await AuthRepository.registerExplicit(normalizedPhone, password);
                 router.replace('/login');

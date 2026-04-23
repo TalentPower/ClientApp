@@ -127,10 +127,13 @@ export default function HubScreen() {
                                         key={item.id} 
                                         item={item} 
                                         forecastStatus={
-                                            item.type === 'ATTENDANCE_FORECAST' && item.entityId === forecast?.forecastId 
-                                                ? forecast?.status 
+                                            item.type === 'ATTENDANCE_FORECAST' &&
+                                            item.entityId != null &&
+                                            forecast?.forecastId != null &&
+                                            item.entityId === forecast.forecastId
+                                                ? forecast.status
                                                 : undefined
-                                        } 
+                                        }
                                         onAction={async (action, id) => {
                                             if (!id) return;
                                             await handleForecastAction(action, id);

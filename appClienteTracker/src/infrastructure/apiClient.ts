@@ -7,7 +7,7 @@ export const BASE_URL = config.api.baseUrl;
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
-    timeout: 15000,
+    timeout: config.api.timeoutMs,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -74,7 +74,7 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
+        if (error.response && error.response.status === 401) {
             if (!_unauthorizedPromise) {
                 _unauthorizedPromise = handleUnauthorized().finally(() => {
                     // Allow re-trigger only after login produces a new valid token.

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Alert } from 'react-native';
+import { StyleSheet, View, Text, Alert, AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { BottomSheet } from '@/src/components/BottomSheet';
@@ -9,18 +9,20 @@ import { TripStatusBanner } from '@/src/components/TripStatusBanner';
 import { Colors, Spacing } from '@/src/constants/Colors';
 import { useTrips, useAttendance } from '@/src/hooks/useTrips';
 import { useNetworkStatus } from '@/src/hooks/useNetworkStatus';
+import { config } from '@/src/config/environment';
 
 const BACKGROUND_LOCATION_TASK = 'BACKGROUND_LOCATION_TASK';
 
-// Register background task at module scope (required by Expo)
+// Register background task at module scope (required by Expo).
+// Expo deduplicates re-registrations on Fast Refresh — safe to call on every import.
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     if (error) {
-        console.error('Error en Background Geolocation', error);
+        if (__DEV__) console.error('Error en Background Geolocation', error);
         return;
     }
     if (data) {
         const { locations } = data as { locations: Location.LocationObject[] };
-        console.log('Ubicación capturada en background:', locations[0]);
+        if (__DEV__) console.log('Ubicación capturada en background:', locations[0]);
     }
 });
 
@@ -48,6 +50,14 @@ export default function RouteTrackingScreen() {
     } = useAttendance();
     const { isConnected, isInternetReachable } = useNetworkStatus();
     const isOffline = !isConnected || isInternetReachable === false;
+    const [appActive, setAppActive] = useState(AppState.currentState === 'active');
+
+    // Track app foreground/background to pause polling — saves battery + data
+    useEffect(() => {
+        const handler = (next: AppStateStatus) => setAppActive(next === 'active');
+        const sub = AppState.addEventListener('change', handler);
+        return () => sub.remove();
+    }, []);
 
     useEffect(() => {
         if (attendanceError) {
@@ -64,10 +74,11 @@ export default function RouteTrackingScreen() {
     const tripJustFinished =
         currentTrip?.status === 'COMPLETED' || currentTrip?.status === 'CANCELLED';
 
-    // ── Poll driver live location every 5s (pause when offline) ──
+    // ── Poll driver live location every 5s (pause when offline or backgrounded) ──
     useEffect(() => {
         if (!currentTrip) return;
         if (isOffline) return;
+        if (!appActive) return;
 
         fetchLiveLocation(currentTrip.tripId);
         fetchRouteStops(currentTrip.tripId);
@@ -78,10 +89,10 @@ export default function RouteTrackingScreen() {
             fetchEta(currentTrip.tripId);
             fetchRouteStops(currentTrip.tripId);
             fetchActiveTrips();
-        }, 5000);
+        }, config.polling.tripLiveMs);
 
         return () => clearInterval(interval);
-    }, [currentTrip, isOffline, fetchLiveLocation, fetchRouteStops, fetchEta, fetchActiveTrips]);
+    }, [currentTrip, isOffline, appActive, fetchLiveLocation, fetchRouteStops, fetchEta, fetchActiveTrips]);
 
     // ── Stop background tracking when trip finishes ──
     useEffect(() => {
@@ -91,7 +102,7 @@ export default function RouteTrackingScreen() {
                 const running = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
                 if (running) await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
             } catch (e) {
-                console.warn('Failed to stop bg location:', e);
+                if (__DEV__) console.warn('Failed to stop bg location:', e);
             }
         })();
     }, [tripJustFinished]);
@@ -114,8 +125,8 @@ export default function RouteTrackingScreen() {
                     if (backgroundStatus === 'granted') {
                         await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
                             accuracy: Location.Accuracy.Balanced,
-                            timeInterval: 10000,
-                            distanceInterval: 10,
+                            timeInterval: config.location.backgroundIntervalMs,
+                            distanceInterval: config.location.backgroundDistanceM,
                             foregroundService: {
                                 notificationTitle: 'appClienteTracker activo',
                                 notificationBody: 'Compartiendo tu progreso en la ruta',
@@ -124,18 +135,22 @@ export default function RouteTrackingScreen() {
                         });
                     }
                 } catch (bgErr) {
-                    console.warn('Background location unavailable:', bgErr);
+                    if (__DEV__) console.warn('Background location unavailable:', bgErr);
                 }
 
                 const initialLocation = await Location.getCurrentPositionAsync({});
                 setLocation(initialLocation);
 
                 locationSubscription = await Location.watchPositionAsync(
-                    { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
+                    {
+                        accuracy: Location.Accuracy.High,
+                        timeInterval: config.location.foregroundIntervalMs,
+                        distanceInterval: config.location.foregroundDistanceM,
+                    },
                     (loc) => setLocation(loc)
                 );
             } catch (err) {
-                console.error('Location init failed:', err);
+                if (__DEV__) console.error('Location init failed:', err);
                 Alert.alert('Error de ubicación', 'No se pudo iniciar el rastreo. Reintenta desde ajustes.');
             }
         })();

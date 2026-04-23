@@ -86,11 +86,14 @@ export class TripRepository {
      * GET /api/client/trips/{tripId}/live-location
      * Current bus location from the client-specific controller.
      */
-    static async getLiveLocation(tripId: number): Promise<Coordinate> {
+    static async getLiveLocation(tripId: number): Promise<Coordinate | null> {
         const response = await apiClient.get<BackendApiResponse<any>>(
             `/api/client/trips/${tripId}/live-location`
         );
-        const loc = response.data.data;
+        const loc = response.data?.data;
+        if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
+            return null;
+        }
         return {
             latitude: loc.latitude,
             longitude: loc.longitude,
